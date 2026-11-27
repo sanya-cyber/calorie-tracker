@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>每日熱量與飲料紀錄器｜空白通用版</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            cream: '#F7F5F0',
+            card: '#FFFFFF',
+            borderWarm: '#E8E2D8',
+            sage: {
+              50: '#F0F5F2',
+              100: '#DCE9E1',
+              600: '#355E4B',
+              700: '#274738',
+              800: '#1D362A',
+            },
+            terra: {
+              50: '#FDF3EE',
+              100: '#F9E1D6',
+              500: '#C96D4B',
+              600: '#B05737',
+            },
+            amberWarm: {
+              50: '#FEF8EC',
+              500: '#D98A3C',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      background-color: #F7F5F0;
+      color: #252A26;
+      font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .soft-card {
+      background: #FFFFFF;
+      border: 1px solid #E8E2D8;
+      border-radius: 1.25rem;
+      box-shadow: 0 2px 10px rgba(39, 71, 56, 0.04);
+    }
+    .pill-active {
+      background-color: #274738;
+      color: #FFFFFF;
+      border-color: #274738;
+    }
+    .pill-inactive {
+      background-color: #FFFFFF;
+      color: #4A544E;
+      border-color: #E2DBD0;
+    }
+    .pill-inactive:hover {
+      background-color: #F0F5F2;
+    }
+    .progress-fill {
+      transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* Custom scrollbar for horizontal pill lists */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-32">
+  <!-- Top Sticky Header -->
+  <header class="sticky top-0 z-30 bg-cream/95 backdrop-blur border-b border-borderWarm">
+    <div class="max-w-3xl mx-auto px-4 pt-3 pb-2.5">
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-sage-700 text-white text-sm font-bold shrink-0">🍃</span>
+            <h1 id="headerTitle" class="text-base sm:text-lg font-bold text-sage-800 truncate">每日熱量與飲料紀錄器</h1>
+          </div>
+          <p id="headerSubtitle" class="text-xs text-stone-500 mt-0.5 truncate">填寫身高、體重、年齡，自動算出每日所需熱量</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="openPhotoBtnHeader" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-terra-500 hover:bg-terra-600 text-white text-xs font-semibold shadow-sm transition">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+            <span>拍照算熱量</span>
+          </button>
+          <button id="openProfileBtnHeader" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-borderWarm hover:bg-sage-50 text-sage-800 text-xs font-medium transition" title="身體數據與目標設定">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">個人設定</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="mt-2.5 grid grid-cols-3 gap-1.5 bg-[#ECE7DE] p-1 rounded-2xl" aria-label="主選單">
+        <button type="button" data-main-tab="log" class="main-tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-white text-sage-800 shadow-sm">
+          <span>📝</span><span>每日紀錄</span>
+        </button>
+        <button type="button" data-main-tab="charts" class="main-tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-stone-600 hover:text-sage-800">
+          <span>📊</span><span>結算圖表</span>
+        </button>
+        <button type="button" data-main-tab="trends" class="main-tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-stone-600 hover:text-sage-800">
+          <span>📈</span><span>趨勢設定</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+    <!-- Onboarding / Quick Profile Setup Card (shown when profile is blank or user expands it) -->
+    <section id="onboardingCard" class="soft-card p-4 sm:p-5 border-sage-600/30 bg-gradient-to-br from-white to-sage-50/70">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <div>
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sage-100 text-sage-800 text-[11px] font-semibold">✨ 開始使用｜步驟一</span>
+          <h2 class="text-base font-bold text-sage-800 mt-1">輸入身高、體重、年齡，自動計算每日所需熱量</h2>
+          <p class="text-xs text-stone-500 mt-0.5">採用 Mifflin-St Jeor 公式即時計算 BMR 與 TDEE，資料僅儲存在你的裝置瀏覽器中。</p>
+        </div>
+        <button id="collapseOnboardingBtn" type="button" class="hidden text-xs text-stone-500 hover:text-stone-800 px-2 py-1 rounded-lg hover:bg-stone-100">收合</button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">暱稱（選填）</span>
+          <input id="profName" type="text" placeholder="例如：Sanya" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">生理性別</span>
+          <select id="profGender" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30">
+            <option value="female">女性</option>
+            <option value="male">男性</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">年齡（歲）*</span>
+          <input id="profAge" type="number" min="10" max="100" placeholder="例如：26" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">身高（cm）*</span>
+          <input id="profHeight" type="number" min="100" max="240" step="0.5" placeholder="例如：162" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">體重（kg）*</span>
+          <input id="profWeight" type="number" min="30" max="250" step="0.1" placeholder="例如：55" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+        </label>
+        <label class="block">
+          <span class="text-xs font-medium text-stone-600">目標體重（選填）</span>
+          <input id="profTargetWeight" type="number" min="30" max="250" step="0.1" placeholder="例如：52" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+        </label>
+        <label class="block col-span-2 sm:col-span-2">
+          <span class="text-xs font-medium text-stone-600">日常活動量</span>
+          <select id="profActivity" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30">
+            <option value="1.2">久坐（辦公室工作、較少運動）</option>
+            <option value="1.375" selected>輕度活動（每週運動 1～3 天）</option>
+            <option value="1.55">中度活動（每週運動 3～5 天）</option>
+            <option value="1.725">高度活動（每週運動 6～7 天）</option>
+          </select>
+        </label>
+        <label class="block col-span-2 sm:col-span-1">
+          <span class="text-xs font-medium text-stone-600">飲食目標</span>
+          <select id="profGoal" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30">
+            <option value="-500">積極減脂（-500 kcal）</option>
+            <option value="-300" selected>溫和減脂（-300 kcal）</option>
+            <option value="0">維持體重（TDEE）</option>
+            <option value="250">健康增肌（+250 kcal）</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Live Calculation Preview -->
+      <div id="calcPreviewBar" class="mt-4 p-3 rounded-2xl bg-white border border-sage-100 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span class="text-stone-500">基礎代謝 BMR：<strong id="previewBmr" class="text-stone-800">--</strong> kcal</span>
+          <span class="text-stone-500">每日總消耗 TDEE：<strong id="previewTdee" class="text-stone-800">--</strong> kcal</span>
+          <span class="text-sage-700 font-semibold">建議每日攝取：<strong id="previewTarget" class="text-base text-sage-800">--</strong> kcal</span>
+        </div>
+        <button id="saveProfileBtn" type="button" class="px-4 py-2 rounded-xl bg-sage-700 hover:bg-sage-800 text-white text-xs font-semibold transition shadow-sm">
+          套用並開始紀錄
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 1: DAILY LOG ==================== -->
+    <div id="tab-log" class="space-y-4">
+      <!-- Date & Daily Weight Strip -->
+      <div class="soft-card p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <button id="prevDateBtn" type="button" class="w-8 h-8 rounded-xl border border-borderWarm bg-cream/60 hover:bg-sage-50 flex items-center justify-center text-stone-600" aria-label="前一天">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <input id="activeDateInput" type="date" class="rounded-xl border border-borderWarm bg-white px-3 py-1.5 text-sm font-semibold text-sage-800 focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+          <button id="nextDateBtn" type="button" class="w-8 h-8 rounded-xl border border-borderWarm bg-cream/60 hover:bg-sage-50 flex items-center justify-center text-stone-600" aria-label="後一天">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-stone-500">當日體重</span>
+          <div class="relative">
+            <input id="dailyWeightInput" type="number" step="0.1" min="25" max="250" placeholder="--" class="w-24 rounded-xl border border-borderWarm bg-white pl-3 pr-8 py-1.5 text-sm font-semibold text-sage-800 focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400">kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Net Calorie Tracker Card -->
+      <section class="soft-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎯</span>
+            <h2 class="text-sm sm:text-base font-bold text-sage-800">今日淨熱量追蹤</h2>
+            <span id="targetRangeBadge" class="text-xs px-2 py-0.5 rounded-full bg-sage-50 text-sage-700 font-medium">尚未設定目標</span>
+          </div>
+          <div class="text-right">
+            <span id="netKcalBig" class="text-xl sm:text-2xl font-extrabold text-sage-800">0</span>
+            <span id="targetKcalSlash" class="text-xs text-stone-500 font-medium"> / -- kcal</span>
+          </div>
+        </div>
+
+        <!-- Main Calorie Progress Bar -->
+        <div>
+          <div class="h-3 rounded-full bg-stone-100 overflow-hidden">
+            <div id="netKcalBar" class="progress-fill h-full rounded-full bg-sage-600" style="width: 0%"></div>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>飲食 <strong id="foodKcalText" class="text-stone-800">0</strong> kcal</span>
+              <span>飲料 <strong id="drinkKcalText" class="text-terra-600">0</strong> kcal</span>
+              <span>運動 <strong id="exerciseKcalText" class="text-sage-700">0</strong> kcal</span>
+            </div>
+            <span id="remainingKcalBadge" class="font-semibold text-sage-700">剩餘扣打 -- kcal</span>
+          </div>
+        </div>
+
+        <!-- Macro Progress Bars -->
+        <div class="grid grid-cols-3 gap-2.5 pt-1">
+          <div class="p-2.5 rounded-2xl bg-cream/70 border border-borderWarm/70">
+            <div class="flex items-center justify-between text-[11px] mb-1">
+              <span class="font-semibold text-stone-700">蛋白質</span>
+              <span id="proteinValText" class="font-bold text-sage-700">0g</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+              <div id="proteinBar" class="progress-fill h-full rounded-full bg-sage-600" style="width: 0%"></div>
+            </div>
+            <p id="proteinGoalText" class="text-[10px] text-stone-500 mt-1">目標 -- g</p>
+          </div>
+
+          <div class="p-2.5 rounded-2xl bg-cream/70 border border-borderWarm/70">
+            <div class="flex items-center justify-between text-[11px] mb-1">
+              <span class="font-semibold text-stone-700">碳水</span>
+              <span id="carbsValText" class="font-bold text-amberWarm-500">0g</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+              <div id="carbsBar" class="progress-fill h-full rounded-full bg-amberWarm-500" style="width: 0%"></div>
+            </div>
+            <p id="carbsGoalText" class="text-[10px] text-stone-500 mt-1">目標 -- g</p>
+          </div>
+
+          <div class="p-2.5 rounded-2xl bg-cream/70 border border-borderWarm/70">
+            <div class="flex items-center justify-between text-[11px] mb-1">
+              <span class="font-semibold text-stone-700">脂肪</span>
+              <span id="fatValText" class="font-bold text-terra-500">0g</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+              <div id="fatBar" class="progress-fill h-full rounded-full bg-terra-500" style="width: 0%"></div>
+            </div>
+            <p id="fatGoalText" class="text-[10px] text-stone-500 mt-1">目標 -- g</p>
+          </div>
+        </div>
+
+        <!-- Water Intake Mini Tracker -->
+        <div class="pt-2 border-t border-borderWarm/70 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2 text-xs">
+            <span>💧</span>
+            <span class="font-semibold text-stone-700">今日飲水</span>
+            <strong id="waterValText" class="text-sky-700">0</strong>
+            <span id="waterGoalText" class="text-stone-400">/ 2,000 ml</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" data-water-delta="250" class="water-btn px-2.5 py-1 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-semibold transition">+250ml</button>
+            <button type="button" data-water-delta="500" class="water-btn px-2.5 py-1 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-semibold transition">+500ml</button>
+            <button type="button" data-water-delta="-250" class="water-btn px-2 py-1 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-medium transition">-250</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Today's Logged Items List -->
+      <section class="soft-card p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-sage-800 flex items-center gap-1.5">
+            <span>📋</span>
+            <span>今日已紀錄清單</span>
+            <span id="loggedCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium">0 筆</span>
+          </h3>
+          <button id="clearTodayBtn" type="button" class="text-xs text-stone-400 hover:text-terra-600 transition hidden">清空本日</button>
+        </div>
+        <div id="todayEntriesList" class="space-y-2">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Step 1: Select Meal / Drink / Exercise Category -->
+      <section class="soft-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-sm font-bold text-sage-800">1. 選擇加入餐別（含專屬飲料欄）</h3>
+          <button id="openPhotoBtnInline" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-terra-50 hover:bg-terra-100 text-terra-600 border border-terra-500/30 text-xs font-semibold transition">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+            <span>不知道熱量？拍照估算</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2" id="mealCategoryBar">
+          <button type="button" data-cat="早餐" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-active">🍳 早餐</button>
+          <button type="button" data-cat="午餐" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-inactive">🍱 午餐</button>
+          <button type="button" data-cat="晚餐" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-inactive">🥗 晚餐</button>
+          <button type="button" data-cat="點心" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-inactive">🍪 點心</button>
+          <button type="button" data-cat="飲料" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-inactive">🧋 飲料</button>
+          <button type="button" data-cat="運動" class="cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition pill-inactive">🏃 運動</button>
+        </div>
+
+        <!-- Dedicated Hand-Shaken Drink Custom Builder (highlighted when 飲料 is selected, or toggleable) -->
+        <div id="drinkBuilderCard" class="hidden rounded-2xl border border-terra-500/30 bg-terra-50/50 p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h4 class="text-sm font-bold text-terra-600 flex items-center gap-1.5"><span>🧋</span><span>手搖飲與飲料熱量快速組裝器</span></h4>
+              <p class="text-[11px] text-stone-500 mt-0.5">選擇茶底、杯型、甜度與加料，立即計算飲料熱量並加入「飲料」欄</p>
+            </div>
+            <span id="drinkBuilderKcalBadge" class="px-2.5 py-1 rounded-full bg-white border border-terra-500/30 text-terra-600 text-xs font-bold shrink-0">0 kcal</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <label class="block">
+              <span class="text-[11px] font-medium text-stone-600">飲品基底</span>
+              <select id="dbBase" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs font-medium">
+                <option value="pure_tea">無糖純茶（綠茶/紅茶/烏龍）</option>
+                <option value="milk_tea_fresh">鮮奶茶 / 紅茶拿鐵</option>
+                <option value="milk_tea_creamer">奶精奶茶</option>
+                <option value="fruit_tea">水果茶 / 翡翠檸檬</option>
+                <option value="yakult_green">多多綠茶</option>
+                <option value="cheese_foam">奶蓋系列</option>
+                <option value="latte_coffee">超商 / 咖啡拿鐵</option>
+                <option value="americano">美式黑咖啡</option>
+                <option value="soy_milk">無糖豆漿</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-medium text-stone-600">容量</span>
+              <select id="dbSize" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs font-medium">
+                <option value="0.72">中杯 (約 500ml)</option>
+                <option value="1" selected>大杯 (約 700ml)</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-medium text-stone-600">甜度</span>
+              <select id="dbSugar" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs font-medium">
+                <option value="0">無糖 (0%)</option>
+                <option value="80">一分糖 / 微糖 (30%)</option>
+                <option value="120" selected>微糖 / 半糖 (50%)</option>
+                <option value="160">少糖 (70%)</option>
+                <option value="200">全糖 (100%)</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-medium text-stone-600">加料</span>
+              <select id="dbTopping" class="mt-1 w-full rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs font-medium">
+                <option value="none">不加料</option>
+                <option value="boba">波霸 / 珍珠 (+180 kcal)</option>
+                <option value="coconut">椰果 (+100 kcal)</option>
+                <option value="grass_jelly">仙草 / 愛玉 (+40 kcal)</option>
+                <option value="agar">寒天晶球 (+60 kcal)</option>
+                <option value="pudding">布丁 (+130 kcal)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <p id="drinkBuilderMacroText" class="text-[11px] text-stone-600">預估：P 0g · C 0g · F 0g</p>
+            <button id="addBuiltDrinkBtn" type="button" class="px-4 py-2 rounded-xl bg-terra-500 hover:bg-terra-600 text-white text-xs font-semibold transition shadow-sm">
+              + 加入飲料紀錄
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Quick Add Common Foods / Drinks / Exercise -->
+        <div class="pt-2 border-t border-borderWarm/70 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold text-sage-800">2. 快速新增常用食物 / 飲料 / 運動（點擊一鍵加入）</h3>
+          </div>
+
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1" id="presetFilterBar">
+            <button type="button" data-preset-tab="drinks" class="preset-tab-btn shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition pill-active">🧋 手搖與飲料</button>
+            <button type="button" data-preset-tab="protein" class="preset-tab-btn shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition pill-inactive">💪 高蛋白主力</button>
+            <button type="button" data-preset-tab="breakfast" class="preset-tab-btn shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition pill-inactive">🍳 早餐與超商</button>
+            <button type="button" data-preset-tab="exercise" class="preset-tab-btn shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition pill-inactive">🏃 運動消耗</button>
+          </div>
+
+          <div id="presetItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Step 3: Custom Food / Drink / Exercise Form -->
+        <div class="pt-3 border-t border-borderWarm/70 space-y-3">
+          <h3 class="text-sm font-bold text-sage-800">3. 自訂新增食物、飲料或運動項目</h3>
+          <form id="customEntryForm" class="space-y-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <input id="customName" type="text" required placeholder="品名（如：微糖珍奶 / 雞腿便當 / 慢跑30分）" class="sm:col-span-2 rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+              <select id="customCat" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sage-600/30">
+                <option value="早餐">🍳 早餐（攝取 +）</option>
+                <option value="午餐">🍱 午餐（攝取 +）</option>
+                <option value="晚餐">🥗 晚餐（攝取 +）</option>
+                <option value="點心">🍪 點心（攝取 +）</option>
+                <option value="飲料">🧋 飲料（攝取 +）</option>
+                <option value="運動">🏃 運動（消耗 -）</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <input id="customKcal" type="number" min="0" required placeholder="熱量 kcal *" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+              <input id="customProtein" type="number" min="0" step="0.1" placeholder="蛋白質 P (g)" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+              <input id="customCarbs" type="number" min="0" step="0.1" placeholder="碳水 C (g)" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+              <input id="customFat" type="number" min="0" step="0.1" placeholder="脂肪 F (g)" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-sage-700 hover:bg-sage-800 text-white text-sm font-semibold transition shadow-sm">
+              + 加入目前紀錄清單
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Step 4: Report Text Preview (from Video 1) -->
+      <section class="soft-card p-4 sm:p-5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-sage-800">回報文字預覽</h3>
+          <span class="text-[11px] text-stone-400">與上方紀錄即時同步</span>
+        </div>
+        <pre id="reportPreviewText" class="w-full whitespace-pre-wrap break-words rounded-2xl bg-cream/80 border border-borderWarm p-3.5 text-xs leading-relaxed text-stone-700 font-sans"></pre>
+      </section>
+    </div>
+
+    <!-- ==================== TAB 2: CHARTS DASHBOARD ==================== -->
+    <div id="tab-charts" class="hidden space-y-4">
+      <!-- Summary Hero Banner (Video 2 Style) -->
+      <section class="soft-card p-5 bg-gradient-to-br from-white to-sage-50/70">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span id="chartDateLabel" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sage-100 text-sage-800 text-xs font-semibold">今日結算</span>
+            <h2 id="chartHeroHeadline" class="text-lg font-bold text-sage-800 mt-1.5">尚未紀錄今日飲食與飲料</h2>
+            <p id="chartHeroSub" class="text-xs text-stone-500 mt-1">回到「每日紀錄」加入餐點或手搖飲後，圖表會自動更新。</p>
+          </div>
+          <div class="text-left sm:text-right bg-white px-4 py-3 rounded-2xl border border-borderWarm min-w-[140px]">
+            <p class="text-[11px] text-stone-500">距離每日上限</p>
+            <p id="chartDeltaNumber" class="text-2xl font-extrabold text-sage-700">--</p>
+            <p id="chartDeltaSub" class="text-[11px] text-stone-500">kcal</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 Metric Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="soft-card p-3.5">
+          <p class="text-xs text-stone-500">淨熱量攝取</p>
+          <p id="statNetKcal" class="text-xl font-extrabold text-sage-800 mt-1">0 <span class="text-xs font-normal text-stone-400">kcal</span></p>
+          <p id="statDrinkShare" class="text-[11px] text-terra-600 mt-1">含飲料 0 kcal</p>
+        </div>
+        <div class="soft-card p-3.5">
+          <p class="text-xs text-stone-500">總蛋白質</p>
+          <p id="statProtein" class="text-xl font-extrabold text-sage-700 mt-1">0 <span class="text-xs font-normal text-stone-400">g</span></p>
+          <p id="statProteinPct" class="text-[11px] text-stone-500 mt-1">達成率 --%</p>
+        </div>
+        <div class="soft-card p-3.5">
+          <p class="text-xs text-stone-500">總碳水化合物</p>
+          <p id="statCarbs" class="text-xl font-extrabold text-amberWarm-500 mt-1">0 <span class="text-xs font-normal text-stone-400">g</span></p>
+          <p id="statCarbsPct" class="text-[11px] text-stone-500 mt-1">目標 --g</p>
+        </div>
+        <div class="soft-card p-3.5">
+          <p class="text-xs text-stone-500">總脂肪</p>
+          <p id="statFat" class="text-xl font-extrabold text-terra-500 mt-1">0 <span class="text-xs font-normal text-stone-400">g</span></p>
+          <p id="statFatPct" class="text-[11px] text-stone-500 mt-1">目標 --g</p>
+        </div>
+      </div>
+
+      <!-- Bar Chart: Meal & Drink Distribution vs Target -->
+      <section class="soft-card p-4 sm:p-5">
+        <div class="mb-3">
+          <h3 class="text-sm font-bold text-sage-800">餐別與飲料熱量分布 vs 每日上限</h3>
+          <p id="barChartSubtitle" class="text-xs text-stone-500 mt-0.5">包含早、午、晚、點心與專屬飲料熱量比較</p>
+        </div>
+        <div class="relative h-72 w-full">
+          <canvas id="mealBarChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Donut Chart: Macronutrient Ratio -->
+      <section class="soft-card p-4 sm:p-5">
+        <div class="mb-3">
+          <h3 class="text-sm font-bold text-sage-800">三大營養素熱量結構佔比</h3>
+          <p id="donutChartSubtitle" class="text-xs text-stone-500 mt-0.5">蛋白質 4 kcal/g · 碳水 4 kcal/g · 脂肪 9 kcal/g</p>
+        </div>
+        <div class="relative h-64 w-full">
+          <canvas id="macroDonutChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Today's Full Nutrition Table -->
+      <section class="soft-card p-4 sm:p-5 overflow-hidden">
+        <h3 class="text-sm font-bold text-sage-800 mb-3">當日完整飲食與飲料明細</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-borderWarm text-stone-500">
+                <th class="py-2 pr-3 font-semibold">類別</th>
+                <th class="py-2 pr-3 font-semibold">項目內容</th>
+                <th class="py-2 pr-3 font-semibold text-right">熱量</th>
+                <th class="py-2 font-semibold text-right">P / C / F</th>
+              </tr>
+            </thead>
+            <tbody id="chartDetailTableBody" class="divide-y divide-borderWarm/60">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== TAB 3: TRENDS & SETTINGS ==================== -->
+    <div id="tab-trends" class="hidden space-y-4">
+      <!-- Multi-Day Summary Card (Video 2 Style) -->
+      <section class="soft-card p-5 space-y-4">
+        <div>
+          <span class="text-[11px] font-bold tracking-wider uppercase text-sage-600">MULTI-DAY METABOLIC BALANCE</span>
+          <h2 class="text-base font-bold text-sage-800 mt-0.5">多日熱量與飲料趨勢總結</h2>
+          <p id="trendSubtitle" class="text-xs text-stone-500 mt-0.5">依據你已紀錄的所有日期自動統計平均值</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3.5 rounded-2xl bg-cream/80 border border-borderWarm">
+            <p class="text-[11px] text-stone-500">已紀錄天數</p>
+            <p id="trendDaysCount" class="text-xl font-extrabold text-sage-800 mt-1">0 天</p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-cream/80 border border-borderWarm">
+            <p class="text-[11px] text-stone-500">日均淨熱量</p>
+            <p id="trendAvgKcal" class="text-xl font-extrabold text-sage-800 mt-1">0 <span class="text-xs font-normal">kcal</span></p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-cream/80 border border-borderWarm">
+            <p class="text-[11px] text-stone-500">日均蛋白質</p>
+            <p id="trendAvgProtein" class="text-xl font-extrabold text-sage-700 mt-1">0 <span class="text-xs font-normal">g</span></p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-cream/80 border border-borderWarm">
+            <p class="text-[11px] text-stone-500">日均飲料熱量</p>
+            <p id="trendAvgDrink" class="text-xl font-extrabold text-terra-600 mt-1">0 <span class="text-xs font-normal">kcal</span></p>
+          </div>
+        </div>
+
+        <!-- Daily History Cards -->
+        <div class="space-y-2 pt-2">
+          <h3 class="text-xs font-bold text-stone-600">歷史紀錄日期（點擊切換查看）</h3>
+          <div id="historyDaysList" class="space-y-2">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Personalized Daily Guidelines (Dynamic based on user's BMR/TDEE) -->
+      <section class="soft-card p-5 space-y-3">
+        <h3 class="text-sm font-bold text-sage-800">依據你的數據產生的專屬執行檢核</h3>
+        <div id="dynamicChecklist" class="space-y-2 text-xs text-stone-700">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Data Management & AI Vision API Key Settings -->
+      <section class="soft-card p-5 space-y-4">
+        <div>
+          <h3 class="text-sm font-bold text-sage-800">進階設定與資料管理</h3>
+          <p class="text-xs text-stone-500 mt-0.5">可選填個人 Gemini API Key 開啟「拍照自動 AI 辨識熱量」，或匯出／重置本機資料。</p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-cream/70 border border-borderWarm space-y-2">
+          <label class="block">
+            <span class="text-xs font-semibold text-stone-700">Gemini API Key（選填，僅存在本機瀏覽器，用於拍照直接辨識食物熱量）</span>
+            <div class="mt-1.5 flex gap-2">
+              <input id="geminiApiKeyInput" type="password" placeholder="貼上 AIza... 開頭的 API Key" class="flex-1 rounded-xl border border-borderWarm bg-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sage-600/30" />
+              <button id="saveApiKeyBtn" type="button" class="px-3.5 py-2 rounded-xl bg-sage-700 hover:bg-sage-800 text-white text-xs font-semibold transition">儲存 Key</button>
+            </div>
+          </label>
+          <p id="apiKeyStatusText" class="text-[11px] text-stone-500">未設定時仍可使用「拍照預覽＋內建快速份量熱量估算器」。</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="exportJsonBtn" type="button" class="px-3.5 py-2 rounded-xl border border-borderWarm bg-white hover:bg-sage-50 text-xs font-semibold text-sage-800 transition">
+            ⬇️ 匯出紀錄備份 (JSON)
+          </button>
+          <button id="openResetModalBtn" type="button" class="px-3.5 py-2 rounded-xl border border-terra-500/40 bg-terra-50 hover:bg-terra-100 text-xs font-semibold text-terra-600 transition">
+            🗑️ 重置為完全空白
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Summary & Copy Bar (Video 1 Style) -->
+  <div class="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-borderWarm shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+    <div class="max-w-3xl mx-auto px-4 py-2.5 space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-stone-600">
+        <span>飲食 <strong id="stickyFood" class="text-stone-900">0</strong> · 飲料 <strong id="stickyDrink" class="text-terra-600">0</strong> · 運動 <strong id="stickyEx" class="text-sage-700">0</strong></span>
+        <span>淨攝取 <strong id="stickyNet" class="text-sage-800">0</strong> · P <strong id="stickyP">0</strong>g · C <strong id="stickyC">0</strong>g · F <strong id="stickyF">0</strong>g</span>
+      </div>
+      <button id="copyReportBtn" type="button" class="w-full py-2.5 rounded-xl bg-sage-800 hover:bg-sage-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition shadow-sm">
+        <i data-lucide="copy" class="w-4 h-4"></i>
+        <span>複製今日結算回報</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== PHOTO CALORIE ESTIMATOR MODAL ==================== -->
+  <div id="photoModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-sage-800 flex items-center gap-1.5"><span>📷</span><span>拍照算熱量</span></h3>
+          <p class="text-xs text-stone-500 mt-0.5">拍下食物或手搖飲，立即估算熱量並加入紀錄</p>
+        </div>
+        <button id="closePhotoModalBtn" type="button" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600" aria-label="關閉">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Camera / File Upload Dropzone -->
+      <label class="block cursor-pointer">
+        <input id="photoFileInput" type="file" accept="image/*" capture="environment" class="hidden" />
+        <div id="photoUploadArea" class="border-2 border-dashed border-sage-600/35 hover:border-sage-600 bg-sage-50/40 rounded-2xl p-5 text-center transition">
+          <div id="photoPlaceholder" class="space-y-1.5">
+            <div class="w-11 h-11 rounded-2xl bg-sage-100 text-sage-700 mx-auto flex items-center justify-center">
+              <i data-lucide="camera" class="w-5 h-5"></i>
+            </div>
+            <p class="text-sm font-semibold text-sage-800">點擊開啟相機拍照或選擇相簿照片</p>
+            <p class="text-[11px] text-stone-500">支援餐點、外食便當、超商包裝與手搖飲</p>
+          </div>
+          <img id="photoPreviewImg" src="" alt="食物預覽" class="hidden max-h-52 mx-auto rounded-xl object-contain" />
+        </div>
+      </label>
+
+      <!-- AI Vision Action (uses user's Gemini API key if provided) -->
+      <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-cream/80 border border-borderWarm">
+        <div class="text-xs text-stone-600 flex-1 min-w-[180px]">
+          <p class="font-semibold text-sage-800">AI 自動辨識照片</p>
+          <p id="photoAiHint" class="text-[11px] text-stone-500">需先於「趨勢設定」填入 Gemini API Key；未填也可直接用下方快速估算。</p>
+        </div>
+        <button id="runPhotoAiBtn" type="button" class="px-3.5 py-2 rounded-xl bg-terra-500 hover:bg-terra-600 text-white text-xs font-semibold transition disabled:opacity-50">
+          ✨ AI 辨識熱量
+        </button>
+      </div>
+      <p id="photoAiStatus" class="hidden text-xs font-medium px-3 py-2 rounded-xl bg-sage-50 text-sage-800"></p>
+
+      <!-- Fast Offline Photo Portion Estimator -->
+      <div class="space-y-2.5 pt-1 border-t border-borderWarm">
+        <p class="text-xs font-bold text-sage-800">快速對照與份量微調（免網路／免 API Key 也能算）</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select id="photoQuickMatch" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-xs font-medium">
+            <option value="">-- 選擇相近餐點或飲料類型 --</option>
+            <option value="便當（炸排骨/炸雞腿）|850|32|92|38|午餐">便當（炸排骨/炸雞腿）約 850 kcal</option>
+            <option value="便當（滷雞腿/烤魚）|650|35|78|20|午餐">便當（滷雞腿/烤魚）約 650 kcal</option>
+            <option value="健康餐盒（雞胸/舒肥）|480|38|52|12|午餐">健康餐盒（雞胸/舒肥）約 480 kcal</option>
+            <option value="麵食（乾麵/牛肉麵）|580|24|75|18|晚餐">麵食（乾麵/牛肉麵）約 580 kcal</option>
+            <option value="蛋餅＋無糖豆漿|420|22|38|19|早餐">蛋餅＋無糖豆漿 約 420 kcal</option>
+            <option value="珍珠奶茶（大杯半糖）|610|6|95|22|飲料">珍珠奶茶（大杯半糖）約 610 kcal</option>
+            <option value="鮮奶茶（大杯微糖）|290|8|42|9|飲料">鮮奶茶（大杯微糖）約 290 kcal</option>
+            <option value="水果茶 / 多多綠（大杯）|360|2|82|2|飲料">水果茶 / 多多綠（大杯）約 360 kcal</option>
+            <option value="奶蓋系列飲品（大杯）|650|7|75|34|飲料">奶蓋系列飲品（大杯）約 650 kcal</option>
+            <option value="甜點 / 蛋糕一塊|350|5|45|16|點心">甜點 / 蛋糕一塊 約 350 kcal</option>
+          </select>
+          <select id="photoPortionMult" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-xs font-medium">
+            <option value="0.5">吃／喝一半（0.5 份）</option>
+            <option value="0.75">約七五成（0.75 份）</option>
+            <option value="1" selected>完整一份（1.0 份）</option>
+            <option value="1.25">加大／多料（1.25 份）</option>
+            <option value="1.5">1.5 份</option>
+          </select>
+        </div>
+
+        <form id="photoSaveForm" class="space-y-2.5 pt-1">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input id="photoItemName" type="text" required placeholder="品名（辨識或自填）" class="sm:col-span-2 rounded-xl border border-borderWarm bg-white px-3 py-2 text-xs" />
+            <select id="photoItemCat" class="rounded-xl border border-borderWarm bg-white px-3 py-2 text-xs font-medium">
+              <option value="早餐">🍳 早餐</option>
+              <option value="午餐">🍱 午餐</option>
+              <option value="晚餐">🥗 晚餐</option>
+              <option value="點心">🍪 點心</option>
+              <option value="飲料">🧋 飲料</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <input id="photoItemKcal" type="number" min="0" required placeholder="熱量 *" class="rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs" />
+            <input id="photoItemP" type="number" min="0" step="0.1" placeholder="P (g)" class="rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs" />
+            <input id="photoItemC" type="number" min="0" step="0.1" placeholder="C (g)" class="rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs" />
+            <input id="photoItemF" type="number" min="0" step="0.1" placeholder="F (g)" class="rounded-xl border border-borderWarm bg-white px-2.5 py-2 text-xs" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-sage-700 hover:bg-sage-800 text-white text-sm font-semibold transition">
+            確認並加入今日紀錄
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CONFIRM RESET MODAL ==================== -->
+  <div id="resetModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+      <h3 class="text-base font-bold text-sage-800">確定要重置所有資料嗎？</h3>
+      <p class="text-xs text-stone-600 leading-relaxed">這會清除你的身高、體重、年齡設定與所有日期的飲食／飲料紀錄，讓 App 恢復為完全空白狀態。</p>
+      <div class="flex justify-end gap-2">
+        <button id="cancelResetBtn" type="button" class="px-4 py-2 rounded-xl border border-borderWarm text-xs font-semibold text-stone-600 hover:bg-stone-50">取消</button>
+        <button id="confirmResetBtn" type="button" class="px-4 py-2 rounded-xl bg-terra-600 hover:bg-terra-500 text-white text-xs font-semibold">確定清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-full bg-sage-800 text-white text-xs font-semibold shadow-lg transition"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'universal_calorie_drink_tracker_v1';
+
+      // Grounded Taiwan food & hand-shaken drink presets
+      const PRESETS = {
+        drinks: [
+          { name: '無糖純茶（綠茶／烏龍／紅茶）', kcal: 0, p: 0, c: 0, f: 0, cat: '飲料', tag: '0卡首選' },
+          { name: '無糖鮮奶茶（中杯 500ml）', kcal: 170, p: 6, c: 12, f: 8, cat: '飲料', tag: '鮮奶基底' },
+          { name: '微糖鮮奶茶（大杯 700ml）', kcal: 290, p: 8, c: 42, f: 9, cat: '飲料', tag: '溫和滿足' },
+          { name: '珍珠奶茶（大杯半糖）', kcal: 610, p: 6, c: 95, f: 22, cat: '飲料', tag: '高熱量注意' },
+          { name: '珍珠奶茶（大杯全糖）', kcal: 710, p: 6, c: 120, f: 22, cat: '飲料', tag: '紅燈警示' },
+          { name: '多多綠茶（大杯）', kcal: 340, p: 2, c: 82, f: 0, cat: '飲料', tag: '含糖偏高' },
+          { name: '水果茶（大杯）', kcal: 380, p: 1, c: 92, f: 1, cat: '飲料', tag: '果糖注意' },
+          { name: '美式黑咖啡（無糖）', kcal: 15, p: 0.5, c: 2, f: 0, cat: '飲料', tag: '提神低卡' },
+          { name: '冰拿鐵咖啡（中杯無糖）', kcal: 165, p: 8, c: 12, f: 9, cat: '飲料', tag: '超商常見' },
+          { name: '奶蓋系列飲品（大杯）', kcal: 620, p: 7, c: 72, f: 34, cat: '飲料', tag: '高脂注意' },
+        ],
+        protein: [
+          { name: '即食雞胸肉 1 包（約100g）', kcal: 120, p: 23, c: 2, f: 2, cat: null, tag: '超商高蛋白' },
+          { name: '水煮蛋／茶葉蛋 2 顆', kcal: 150, p: 14, c: 1.5, f: 10, cat: null, tag: '優質蛋白' },
+          { name: '無糖豆漿 1 瓶（400ml）', kcal: 135, p: 14, c: 6, f: 6, cat: '飲料', tag: '植物蛋白' },
+          { name: '毛豆莢隨手包 1 包', kcal: 110, p: 11, c: 8, f: 4, cat: null, tag: '高纖點心' },
+          { name: '無糖希臘式優格 1 杯', kcal: 105, p: 11, c: 7, f: 3.5, cat: null, tag: '低卡飽足' },
+          { name: '乾煎鮭魚／鯖魚片（約100g）', kcal: 210, p: 21, c: 0, f: 13, cat: null, tag: 'Omega-3' },
+        ],
+        breakfast: [
+          { name: '茶葉蛋＋無糖豆漿＋小地瓜', kcal: 400, p: 23, c: 48, f: 12, cat: '早餐', tag: '超商組合' },
+          { name: '即食雞胸肉＋鮪魚飯糰', kcal: 320, p: 28, c: 38, f: 6, cat: '早餐', tag: '上班族首選' },
+          { name: '鮮奶 1 瓶（240ml）', kcal: 150, p: 8, c: 12, f: 8, cat: '飲料', tag: '乳品補充' },
+          { name: '烤雞三明治', kcal: 300, p: 18, c: 32, f: 10, cat: '早餐', tag: '均衡方便' },
+          { name: '原味蛋餅 1 份', kcal: 280, p: 9, c: 32, f: 13, cat: '早餐', tag: '早餐店' },
+          { name: '燙青菜 1 份（少油）', kcal: 60, p: 2, c: 6, f: 3, cat: null, tag: '膳食纖維' },
+        ],
+        exercise: [
+          { name: '重訓 60 分鐘', kcal: 220, p: 0, c: 0, f: 0, cat: '運動', tag: '肌力保肌' },
+          { name: '慢跑 30 分鐘', kcal: 240, p: 0, c: 0, f: 0, cat: '運動', tag: '燃脂有氧' },
+          { name: '爬坡快走 30 分鐘', kcal: 210, p: 0, c: 0, f: 0, cat: '運動', tag: '低衝擊燃脂' },
+          { name: '室內單車／飛輪 45 分鐘', kcal: 290, p: 0, c: 0, f: 0, cat: '運動', tag: '有氧燃脂' },
+          { name: '瑜珈／伸展 40 分鐘', kcal: 120, p: 0, c: 0, f: 0, cat: '運動', tag: '放鬆核心' },
+          { name: '日常步行 8,000 步', kcal: 200, p: 0, c: 0, f: 0, cat: '運動', tag: 'NEAT 活動' },
+        ],
+      };
+
+      const DRINK_BASES = {
+        pure_tea: { label: '純茶', kcal: 0, p: 0, c: 0, f: 0 },
+        milk_tea_fresh: { label: '鮮奶茶', kcal: 160, p: 7, c: 12, f: 9 },
+        milk_tea_creamer: { label: '奶精奶茶', kcal: 320, p: 2, c: 30, f: 21 },
+        fruit_tea: { label: '水果茶', kcal: 180, p: 1, c: 42, f: 0.5 },
+        yakult_green: { label: '多多綠', kcal: 180, p: 2, c: 42, f: 0 },
+        cheese_foam: { label: '奶蓋茶', kcal: 420, p: 5, c: 26, f: 33 },
+        latte_coffee: { label: '拿鐵咖啡', kcal: 190, p: 9, c: 14, f: 10 },
+        americano: { label: '美式黑咖啡', kcal: 15, p: 0.5, c: 2, f: 0 },
+        soy_milk: { label: '無糖豆漿', kcal: 180, p: 18, c: 8, f: 8 },
+      };
+
+      const DRINK_TOPPINGS = {
+        none: { label: '', kcal: 0, c: 0 },
+        boba: { label: '＋珍珠', kcal: 180, c: 44 },
+        coconut: { label: '＋椰果', kcal: 100, c: 25 },
+        grass_jelly: { label: '＋仙草', kcal: 40, c: 10 },
+        agar: { label: '＋寒天', kcal: 60, c: 15 },
+        pudding: { label: '＋布丁', kcal: 130, c: 22 },
+      };
+
+      function getTodayStr() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function defaultState() {
+        return {
+          profile: {
+            name: '',
+            gender: 'female',
+            age: '',
+            height: '',
+            weight: '',
+            targetWeight: '',
+            activity: 1.375,
+            goal: -300,
+            configured: false,
+          },
+          apiKey: '',
+          activeDate: getTodayStr(),
+          days: {}, // { 'YYYY-MM-DD': { weight: '', water: 0, entries: [...] } }
+        };
+      }
+
+      let state = defaultState();
+      let selectedMainTab = 'log';
+      let selectedCategory = '早餐';
+      let selectedPresetTab = 'drinks';
+      let currentPhotoDataUrl = '';
+      let mealBarChartInstance = null;
+      let macroDonutChartInstance = null;
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            state = {
+              ...defaultState(),
+              ...parsed,
+              profile: { ...defaultState().profile, ...(parsed.profile || {}) },
+              days: parsed.days || {},
+            };
+          }
+        } catch (e) {
+          state = defaultState();
+        }
+        if (!state.activeDate) state.activeDate = getTodayStr();
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          // Ignore quota or sandbox storage errors gracefully
+        }
+      }
+
+      function getDayData(dateStr) {
+        if (!state.days[dateStr]) {
+          state.days[dateStr] = { weight: '', water: 0, entries: [] };
+        }
+        return state.days[dateStr];
+      }
+
+      function calcMetrics(prof) {
+        const age = parseFloat(prof.age);
+        const height = parseFloat(prof.height);
+        const weight = parseFloat(prof.weight);
+        if (!age || !height || !weight || age <= 0 || height <= 0 || weight <= 0) {
+          return null;
+        }
+        const bmr =
+          prof.gender === 'male'
+            ? 10 * weight + 6.25 * height - 5 * age + 5
+            : 10 * weight + 6.25 * height - 5 * age - 161;
+        const activity = parseFloat(prof.activity) || 1.375;
+        const tdee = bmr * activity;
+        const goalDelta = parseFloat(prof.goal) || 0;
+        const targetKcal = Math.max(1200, Math.round(tdee + goalDelta));
+        const proteinFactor = goalDelta === 0 ? 1.4 : 1.6;
+        const proteinGoal = Math.round(weight * proteinFactor);
+        const fatGoal = Math.round((targetKcal * 0.28) / 9);
+        const carbsGoal = Math.max(50, Math.round((targetKcal - proteinGoal * 4 - fatGoal * 9) / 4));
+        const waterGoal = Math.round((weight * 35) / 50) * 50;
+        return {
+          bmr: Math.round(bmr),
+          tdee: Math.round(tdee),
+          targetKcal,
+          proteinGoal,
+          carbsGoal,
+          fatGoal,
+          waterGoal: Math.max(1500, waterGoal),
+        };
+      }
+
+      function computeDayTotals(day) {
+        let foodKcal = 0;
+        let drinkKcal = 0;
+        let exerciseKcal = 0;
+        let p = 0;
+        let c = 0;
+        let f = 0;
+        const byCat = { '早餐': 0, '午餐': 0, '晚餐': 0, '點心': 0, '飲料': 0 };
+
+        (day.entries || []).forEach((item) => {
+          const kcal = Number(item.kcal) || 0;
+          if (item.cat === '運動') {
+            exerciseKcal += kcal;
+          } else {
+            if (item.cat === '飲料') {
+              drinkKcal += kcal;
+            } else {
+              foodKcal += kcal;
+            }
+            if (byCat[item.cat] !== undefined) byCat[item.cat] += kcal;
+            p += Number(item.p) || 0;
+            c += Number(item.c) || 0;
+            f += Number(item.f) || 0;
+          }
+        });
+
+        const totalIntake = foodKcal + drinkKcal;
+        const netKcal = totalIntake - exerciseKcal;
+        return {
+          foodKcal: Math.round(foodKcal),
+          drinkKcal: Math.round(drinkKcal),
+          totalIntake: Math.round(totalIntake),
+          exerciseKcal: Math.round(exerciseKcal),
+          netKcal: Math.round(netKcal),
+          p: Math.round(p * 10) / 10,
+          c: Math.round(c * 10) / 10,
+          f: Math.round(f * 10) / 10,
+          byCat,
+        };
+      }
+
+      function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => {
+          el.classList.add('hidden');
+        }, 2300);
+      }
+
+      function updateProfilePreview() {
+        const tempProf = {
+          gender: document.getElementById('profGender').value,
+          age: document.getElementById('profAge').value,
+          height: document.getElementById('profHeight').value,
+          weight: document.getElementById('profWeight').value,
+          activity: document.getElementById('profActivity').value,
+          goal: document.getElementById('profGoal').value,
+        };
+        const m = calcMetrics(tempProf);
+        document.getElementById('previewBmr').textContent = m ? m.bmr.toLocaleString() : '--';
+        document.getElementById('previewTdee').textContent = m ? m.tdee.toLocaleString() : '--';
+        document.getElementById('previewTarget').textContent = m ? m.targetKcal.toLocaleString() : '--';
+      }
+
+      function populateProfileInputs() {
+        const p = state.profile;
+        document.getElementById('profName').value = p.name || '';
+        document.getElementById('profGender').value = p.gender || 'female';
+        document.getElementById('profAge').value = p.age || '';
+        document.getElementById('profHeight').value = p.height || '';
+        document.getElementById('profWeight').value = p.weight || '';
+        document.getElementById('profTargetWeight').value = p.targetWeight || '';
+        document.getElementById('profActivity').value = String(p.activity || 1.375);
+        document.getElementById('profGoal').value = String(p.goal ?? -300);
+        document.getElementById('geminiApiKeyInput').value = state.apiKey || '';
+        document.getElementById('apiKeyStatusText').textContent = state.apiKey
+          ? '✅ 已儲存 Gemini API Key，可在「拍照算熱量」中直接進行 AI 辨識。'
+          : '未設定時仍可使用「拍照預覽＋內建快速份量熱量估算器」。';
+        updateProfilePreview();
+      }
+
+      function updateDrinkBuilderPreview() {
+        const baseKey = document.getElementById('dbBase').value;
+        const sizeMult = parseFloat(document.getElementById('dbSize').value) || 1;
+        const sugarKcal = parseFloat(document.getElementById('dbSugar').value) || 0;
+        const topKey = document.getElementById('dbTopping').value;
+
+        const base = DRINK_BASES[baseKey] || DRINK_BASES.pure_tea;
+        const top = DRINK_TOPPINGS[topKey] || DRINK_TOPPINGS.none;
+
+        const kcal = Math.round(base.kcal * sizeMult + sugarKcal * sizeMult + top.kcal);
+        const p = Math.round(base.p * sizeMult * 10) / 10;
+        const c = Math.round((base.c * sizeMult + (sugarKcal * sizeMult) / 4 + top.c) * 10) / 10;
+        const f = Math.round(base.f * sizeMult * 10) / 10;
+
+        document.getElementById('drinkBuilderKcalBadge').textContent = `${kcal} kcal`;
+        document.getElementById('drinkBuilderMacroText').textContent = `預估營養：P ${p}g · C ${c}g · F ${f}g`;
+        return { base, top, sizeMult, sugarKcal, kcal, p, c, f };
+      }
+
+      function renderPresets() {
+        const grid = document.getElementById('presetItemsGrid');
+        const items = PRESETS[selectedPresetTab] || [];
+        grid.innerHTML = items
+          .map((item, idx) => {
+            const isEx = item.cat === '運動';
+            const badgeColor = isEx
+              ? 'bg-sage-50 text-sage-700 border-sage-200'
+              : item.cat === '飲料'
+              ? 'bg-terra-50 text-terra-600 border-terra-200'
+              : 'bg-amberWarm-50 text-amberWarm-500 border-amber-200';
+            return `
+              <button type="button" data-preset-idx="${idx}" class="preset-add-btn text-left p-3 rounded-2xl border border-borderWarm bg-white hover:border-sage-600/50 hover:bg-sage-50/40 transition flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-stone-800 truncate">${item.name}</p>
+                  <p class="text-[11px] text-stone-500 mt-0.5">${
+                    isEx ? item.tag : `P ${item.p}g · C ${item.c}g · F ${item.f}g`
+                  }</p>
+                </div>
+                <span class="shrink-0 px-2.5 py-1 rounded-full border text-xs font-bold ${badgeColor}">
+                  ${isEx ? `-${item.kcal}` : item.kcal} kcal
+                </span>
+              </button>
+            `;
+          })
+          .join('');
+      }
+
+      function renderTodayEntries(day) {
+        const list = document.getElementById('todayEntriesList');
+        const clearBtn = document.getElementById('clearTodayBtn');
+        const entries = day.entries || [];
+        document.getElementById('loggedCountBadge').textContent = `${entries.length} 筆`;
+
+        if (entries.length === 0) {
+          clearBtn.classList.add('hidden');
+          list.innerHTML = `
+            <div class="py-6 text-center rounded-2xl bg-cream/60 border border-dashed border-borderWarm">
+              <p class="text-xs font-medium text-stone-500">這一天目前是空白的 🍃</p>
+              <p class="text-[11px] text-stone-400 mt-1">點下方餐別、手搖飲組裝器，或按右上角「拍照算熱量」開始紀錄！</p>
+            </div>
+          `;
+          return;
+        }
+
+        clearBtn.classList.remove('hidden');
+        const catEmoji = { '早餐': '🍳', '午餐': '🍱', '晚餐': '🥗', '點心': '🍪', '飲料': '🧋', '運動': '🏃' };
+
+        list.innerHTML = entries
+          .map((item) => {
+            const isEx = item.cat === '運動';
+            const isDrink = item.cat === '飲料';
+            const pillClass = isEx
+              ? 'bg-sage-100 text-sage-800'
+              : isDrink
+              ? 'bg-terra-100 text-terra-600'
+              : 'bg-stone-100 text-stone-700';
+            const thumbHtml = item.photo
+              ? `<img src="${item.photo}" alt="紀錄照片" class="w-10 h-10 rounded-xl object-cover shrink-0 border border-borderWarm" />`
+              : '';
+            return `
+              <div class="flex items-center justify-between gap-2.5 p-3 rounded-2xl bg-cream/60 border border-borderWarm/80">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  ${thumbHtml}
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${pillClass}">${catEmoji[item.cat] || '🍽️'} ${item.cat}</span>
+                      <span class="text-xs font-bold text-stone-800 truncate">${item.name}</span>
+                    </div>
+                    <p class="text-[11px] text-stone-500 mt-0.5">${
+                      isEx ? '運動消耗熱量' : `P ${item.p || 0}g · C ${item.c || 0}g · F ${item.f || 0}g`
+                    }</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="text-xs font-extrabold ${isEx ? 'text-sage-700' : isDrink ? 'text-terra-600' : 'text-stone-800'}">
+                    ${isEx ? `-${item.kcal}` : `+${item.kcal}`} kcal
+                  </span>
+                  <button type="button" data-del-id="${item.id}" class="del-entry-btn w-7 h-7 rounded-full hover:bg-stone-200/80 text-stone-400 hover:text-terra-600 flex items-center justify-center transition" aria-label="刪除紀錄">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function buildReportText(dateStr, day, totals, metrics) {
+        const namePrefix = state.profile.name ? `${state.profile.name} ` : '';
+        const weightStr = day.weight || state.profile.weight || '--';
+        const targetStr = metrics ? `${metrics.targetKcal} kcal` : '尚未設定';
+        const lines = [
+          `【${dateStr} ${namePrefix}每日熱量與飲料結算】`,
+          `⚖️ 當日體重：${weightStr} kg${state.profile.targetWeight ? `（目標 ${state.profile.targetWeight} kg）` : ''}`,
+          `💧 今日飲水：${day.water || 0} / ${metrics ? metrics.waterGoal : 2000} ml`,
+          `🔥 熱量總覽：飲食 ${totals.foodKcal} + 飲料 ${totals.drinkKcal} - 運動 ${totals.exerciseKcal} = 淨攝取 ${totals.netKcal} kcal（目標 ${targetStr}）`,
+          `🥗 三大營養素：蛋白質 ${totals.p}g / 碳水 ${totals.c}g / 脂肪 ${totals.f}g`,
+        ];
+
+        const order = ['早餐', '午餐', '晚餐', '點心', '飲料', '運動'];
+        order.forEach((cat) => {
+          const items = (day.entries || []).filter((e) => e.cat === cat);
+          if (items.length > 0) {
+            const desc = items.map((i) => `${i.name}(${cat === '運動' ? '-' : ''}${i.kcal}kcal)`).join('、');
+            lines.push(`• ${cat}：${desc}`);
+          }
+        });
+        if (!day.entries || day.entries.length === 0) {
+          lines.push('• 尚未新增飲食或飲料紀錄');
+        }
+        return lines.join('\n');
+      }
+
+      function renderCharts(dateStr, day, totals, metrics) {
+        document.getElementById('chartDateLabel').textContent = `${dateStr} 結算儀表板`;
+        const targetKcal = metrics ? metrics.targetKcal : 0;
+
+        if (day.entries.length === 0) {
+          document.getElementById('chartHeroHeadline').textContent = '尚未紀錄本日飲食與飲料';
+          document.getElementById('chartHeroSub').textContent = '在「每日紀錄」加入餐點或手搖飲後，這裡會即時顯示分布與營養佔比。';
+        } else if (targetKcal > 0) {
+          const diff = totals.netKcal - targetKcal;
+          document.getElementById('chartHeroHeadline').textContent =
+            diff <= 0
+              ? `今日創造 ${Math.abs(diff)} kcal 熱量赤字，控制得很穩！`
+              : `今日淨攝取超出目標 ${diff} kcal，留意飲料與點心份量。`;
+          document.getElementById('chartHeroSub').textContent = `總攝取 ${totals.totalIntake} kcal（其中飲料佔 ${totals.drinkKcal} kcal），運動消耗 ${totals.exerciseKcal} kcal。`;
+        } else {
+          document.getElementById('chartHeroHeadline').textContent = `今日淨攝取 ${totals.netKcal} kcal`;
+          document.getElementById('chartHeroSub').textContent = '填寫身高、體重、年齡即可自動顯示每日目標上限與赤字。';
+        }
+
+        if (targetKcal > 0) {
+          const diff = totals.netKcal - targetKcal;
+          const deltaEl = document.getElementById('chartDeltaNumber');
+          deltaEl.textContent = diff > 0 ? `+${diff}` : `${diff}`;
+          deltaEl.className = `text-2xl font-extrabold ${diff > 0 ? 'text-terra-600' : 'text-sage-700'}`;
+          document.getElementById('chartDeltaSub').textContent = diff > 0 ? 'kcal 超出上限' : 'kcal 剩餘扣打';
+        } else {
+          document.getElementById('chartDeltaNumber').textContent = '--';
+          document.getElementById('chartDeltaSub').textContent = '請先設定個人數據';
+        }
+
+        document.getElementById('statNetKcal').innerHTML = `${totals.netKcal} <span class="text-xs font-normal text-stone-400">kcal</span>`;
+        document.getElementById('statDrinkShare').textContent = `含飲料 ${totals.drinkKcal} kcal`;
+        document.getElementById('statProtein').innerHTML = `${totals.p} <span class="text-xs font-normal text-stone-400">g</span>`;
+        document.getElementById('statProteinPct').textContent = metrics
+          ? `達成率 ${Math.round((totals.p / metrics.proteinGoal) * 100)}%（目標 ${metrics.proteinGoal}g）`
+          : '目標未設定';
+        document.getElementById('statCarbs').innerHTML = `${totals.c} <span class="text-xs font-normal text-stone-400">g</span>`;
+        document.getElementById('statCarbsPct').textContent = metrics ? `目標 ${metrics.carbsGoal}g` : '目標未設定';
+        document.getElementById('statFat').innerHTML = `${totals.f} <span class="text-xs font-normal text-stone-400">g</span>`;
+        document.getElementById('statFatPct').textContent = metrics ? `目標 ${metrics.fatGoal}g` : '目標未設定';
+
+        // Detail table
+        const tbody = document.getElementById('chartDetailTableBody');
+        if (day.entries.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="py-5 text-center text-stone-400">尚無紀錄資料</td></tr>`;
+        } else {
+          tbody.innerHTML = day.entries
+            .map(
+              (item) => `
+            <tr>
+              <td class="py-2.5 pr-3 font-semibold text-stone-700 whitespace-nowrap">${item.cat}</td>
+              <td class="py-2.5 pr-3 text-stone-800">${item.name}</td>
+              <td class="py-2.5 pr-3 text-right font-bold whitespace-nowrap ${item.cat === '運動' ? 'text-sage-700' : item.cat === '飲料' ? 'text-terra-600' : 'text-stone-800'}">
+                ${item.cat === '運動' ? `-${item.kcal}` : item.kcal} kcal
+              </td>
+              <td class="py-2.5 text-right text-stone-500 whitespace-nowrap">${
+                item.cat === '運動' ? '—' : `${item.p || 0} / ${item.c || 0} / ${item.f || 0}`
+              }</td>
+            </tr>
+          `
+            )
+            .join('');
+        }
+
+        // Bar Chart
+        if (typeof Chart !== 'undefined') {
+          const barCtx = document.getElementById('mealBarChart').getContext('2d');
+          if (mealBarChartInstance) mealBarChartInstance.destroy();
+          const barLabels = ['早餐', '午餐', '晚餐', '點心', '🧋 飲料', '全日淨計'];
+          const barValues = [
+            totals.byCat['早餐'],
+            totals.byCat['午餐'],
+            totals.byCat['晚餐'],
+            totals.byCat['點心'],
+            totals.byCat['飲料'],
+            Math.max(0, totals.netKcal),
+          ];
+          const datasets = [
+            {
+              label: '實際熱量 (kcal)',
+              data: barValues,
+              backgroundColor: ['#5D8B74', '#4B7762', '#355E4B', '#D98A3C', '#C96D4B', '#274738'],
+              borderRadius: 8,
+              maxBarThickness: 38,
+            },
+          ];
+          if (targetKcal > 0) {
+            datasets.push({
+              type: 'line',
+              label: `每日目標上限 (${targetKcal} kcal)`,
+              data: barLabels.map(() => targetKcal),
+              borderColor: '#C96D4B',
+              borderWidth: 2,
+              borderDash: [6, 5],
+              pointRadius: 0,
+              fill: false,
+            });
+          }
+          mealBarChartInstance = new Chart(barCtx, {
+            type: 'bar',
+            data: { labels: barLabels, datasets },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  suggestedMax: Math.max(targetKcal + 150, ...barValues, 500),
+                  grid: { color: '#EFECE6' },
+                },
+                x: { grid: { display: false } },
+              },
+            },
+          });
+
+          // Donut Chart
+          const donutCtx = document.getElementById('macroDonutChart').getContext('2d');
+          if (macroDonutChartInstance) macroDonutChartInstance.destroy();
+          const pKcal = totals.p * 4;
+          const cKcal = totals.c * 4;
+          const fKcal = totals.f * 9;
+          const macroTotal = pKcal + cKcal + fKcal;
+
+          macroDonutChartInstance = new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+              labels:
+                macroTotal > 0
+                  ? [
+                      `蛋白質 (${Math.round((pKcal / macroTotal) * 100)}%)`,
+                      `碳水 (${Math.round((cKcal / macroTotal) * 100)}%)`,
+                      `脂肪 (${Math.round((fKcal / macroTotal) * 100)}%)`,
+                    ]
+                  : ['尚無營養素紀錄'],
+              datasets: [
+                {
+                  data: macroTotal > 0 ? [pKcal, cKcal, fKcal] : [1],
+                  backgroundColor: macroTotal > 0 ? ['#355E4B', '#D98A3C', '#C96D4B'] : ['#E8E2D8'],
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '62%',
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              },
+            },
+          });
+        }
+      }
+
+      function renderTrends(metrics) {
+        const loggedDates = Object.keys(state.days)
+          .filter((d) => (state.days[d].entries && state.days[d].entries.length > 0) || state.days[d].weight)
+          .sort()
+          .reverse();
+
+        document.getElementById('trendDaysCount').textContent = `${loggedDates.length} 天`;
+        if (loggedDates.length === 0) {
+          document.getElementById('trendAvgKcal').innerHTML = `0 <span class="text-xs font-normal">kcal</span>`;
+          document.getElementById('trendAvgProtein').innerHTML = `0 <span class="text-xs font-normal">g</span>`;
+          document.getElementById('trendAvgDrink').innerHTML = `0 <span class="text-xs font-normal">kcal</span>`;
+          document.getElementById('historyDaysList').innerHTML = `
+            <p class="text-xs text-stone-400 py-4 text-center rounded-2xl bg-cream/60 border border-dashed border-borderWarm">
+              目前還沒有任何歷史紀錄，從今天開始記下第一筆餐點或飲料吧！
+            </p>
+          `;
+        } else {
+          let sumNet = 0;
+          let sumP = 0;
+          let sumDrink = 0;
+          const rowsHtml = loggedDates
+            .map((d) => {
+              const t = computeDayTotals(state.days[d]);
+              sumNet += t.netKcal;
+              sumP += t.p;
+              sumDrink += t.drinkKcal;
+              const isActive = d === state.activeDate;
+              return `
+                <button type="button" data-jump-date="${d}" class="jump-date-btn w-full text-left p-3 rounded-2xl border ${
+                  isActive ? 'border-sage-600 bg-sage-50/70' : 'border-borderWarm bg-white hover:bg-cream/60'
+                } transition flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-xs font-bold text-sage-800">${d}${state.days[d].weight ? ` · ${state.days[d].weight} kg` : ''}</p>
+                    <p class="text-[11px] text-stone-500 mt-0.5">P ${t.p}g · C ${t.c}g · F ${t.f}g · 飲料 ${t.drinkKcal} kcal</p>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-sage-100 text-sage-800 text-xs font-bold shrink-0">${t.netKcal} kcal</span>
+                </button>
+              `;
+            })
+            .join('');
+          document.getElementById('trendAvgKcal').innerHTML = `${Math.round(sumNet / loggedDates.length)} <span class="text-xs font-normal">kcal</span>`;
+          document.getElementById('trendAvgProtein').innerHTML = `${Math.round((sumP / loggedDates.length) * 10) / 10} <span class="text-xs font-normal">g</span>`;
+          document.getElementById('trendAvgDrink').innerHTML = `${Math.round(sumDrink / loggedDates.length)} <span class="text-xs font-normal">kcal</span>`;
+          document.getElementById('historyDaysList').innerHTML = rowsHtml;
+        }
+
+        // Dynamic Checklist
+        const checklist = document.getElementById('dynamicChecklist');
+        if (!metrics) {
+          checklist.innerHTML = `<p class="text-stone-500">請先在上方填寫身高、體重、年齡，系統會自動產生你的個人熱量、蛋白質與飲水建議。</p>`;
+        } else {
+          checklist.innerHTML = `
+            <div class="p-3 rounded-xl bg-cream/70 border border-borderWarm">✅ <strong>每日熱量目標：</strong>控制在 <strong>${metrics.targetKcal.toLocaleString()} kcal</strong> 左右（BMR ${metrics.bmr} / TDEE ${metrics.tdee} kcal）。</div>
+            <div class="p-3 rounded-xl bg-cream/70 border border-borderWarm">✅ <strong>每日蛋白質目標：</strong>建議達 <strong>${metrics.proteinGoal} g</strong>，幫助維持肌肉量與飽足感。</div>
+            <div class="p-3 rounded-xl bg-cream/70 border border-borderWarm">✅ <strong>手搖飲控管提醒：</strong>飲料建議優先選無糖純茶或鮮奶茶（中杯減糖），並統一記錄在「🧋 飲料」欄追蹤佔比。</div>
+            <div class="p-3 rounded-xl bg-cream/70 border border-borderWarm">✅ <strong>每日飲水建議：</strong>依體重估算約 <strong>${metrics.waterGoal.toLocaleString()} ml</strong>。</div>
+          `;
+        }
+      }
+
+      function renderAll() {
+        const metrics = calcMetrics(state.profile);
+        const day = getDayData(state.activeDate);
+        const totals = computeDayTotals(day);
+
+        // Header
+        const titlePrefix = state.profile.name ? `${state.profile.name} 的` : '';
+        document.getElementById('headerTitle').textContent = `${titlePrefix}每日熱量與飲料紀錄器`;
+        document.getElementById('headerSubtitle').textContent = metrics
+          ? `每日建議 ${metrics.targetKcal.toLocaleString()} kcal · 蛋白 ${metrics.proteinGoal}g · 飲水 ${metrics.waterGoal}ml`
+          : '填寫身高、體重、年齡，自動算出每日所需熱量';
+
+        // Onboarding visibility
+        const onboarding = document.getElementById('onboardingCard');
+        const collapseBtn = document.getElementById('collapseOnboardingBtn');
+        if (state.profile.configured) {
+          collapseBtn.classList.remove('hidden');
+        } else {
+          onboarding.classList.remove('hidden');
+          collapseBtn.classList.add('hidden');
+        }
+
+        // Date & Weight
+        document.getElementById('activeDateInput').value = state.activeDate;
+        document.getElementById('dailyWeightInput').value = day.weight || '';
+
+        // Net Calorie Card
+        document.getElementById('netKcalBig').textContent = totals.netKcal.toLocaleString();
+        document.getElementById('targetKcalSlash').textContent = metrics ? ` / ${metrics.targetKcal.toLocaleString()} kcal` : ' / 尚未設定';
+        document.getElementById('targetRangeBadge').textContent = metrics ? `目標 ${metrics.targetKcal.toLocaleString()} kcal` : '請先設定身高體重';
+
+        const pct = metrics ? Math.min(100, Math.max(0, Math.round((totals.netKcal / metrics.targetKcal) * 100))) : 0;
+        const barEl = document.getElementById('netKcalBar');
+        barEl.style.width = `${pct}%`;
+        barEl.className = `progress-fill h-full rounded-full ${metrics && totals.netKcal > metrics.targetKcal ? 'bg-terra-500' : 'bg-sage-600'}`;
+
+        document.getElementById('foodKcalText').textContent = totals.foodKcal;
+        document.getElementById('drinkKcalText').textContent = totals.drinkKcal;
+        document.getElementById('exerciseKcalText').textContent = totals.exerciseKcal;
+
+        if (metrics) {
+          const rem = metrics.targetKcal - totals.netKcal;
+          const remEl = document.getElementById('remainingKcalBadge');
+          remEl.textContent = rem >= 0 ? `剩餘扣打 ${rem} kcal` : `已超出 ${Math.abs(rem)} kcal`;
+          remEl.className = `font-semibold ${rem >= 0 ? 'text-sage-700' : 'text-terra-600'}`;
+        } else {
+          document.getElementById('remainingKcalBadge').textContent = '設定身高體重後顯示扣打';
+        }
+
+        // Macros
+        document.getElementById('proteinValText').textContent = `${totals.p}g`;
+        document.getElementById('carbsValText').textContent = `${totals.c}g`;
+        document.getElementById('fatValText').textContent = `${totals.f}g`;
+
+        document.getElementById('proteinGoalText').textContent = metrics ? `目標 ${metrics.proteinGoal} g` : '目標 -- g';
+        document.getElementById('carbsGoalText').textContent = metrics ? `目標 ${metrics.carbsGoal} g` : '目標 -- g';
+        document.getElementById('fatGoalText').textContent = metrics ? `目標 ${metrics.fatGoal} g` : '目標 -- g';
+
+        document.getElementById('proteinBar').style.width = metrics ? `${Math.min(100, Math.round((totals.p / metrics.proteinGoal) * 100))}%` : '0%';
+        document.getElementById('carbsBar').style.width = metrics ? `${Math.min(100, Math.round((totals.c / metrics.carbsGoal) * 100))}%` : '0%';
+        document.getElementById('fatBar').style.width = metrics ? `${Math.min(100, Math.round((totals.f / metrics.fatGoal) * 100))}%` : '0%';
+
+        // Water
+        document.getElementById('waterValText').textContent = (day.water || 0).toLocaleString();
+        document.getElementById('waterGoalText').textContent = `/ ${(metrics ? metrics.waterGoal : 2000).toLocaleString()} ml`;
+
+        // Entries & Report
+        renderTodayEntries(day);
+        document.getElementById('reportPreviewText').textContent = buildReportText(state.activeDate, day, totals, metrics);
+
+        // Sticky footer
+        document.getElementById('stickyFood').textContent = totals.foodKcal;
+        document.getElementById('stickyDrink').textContent = totals.drinkKcal;
+        document.getElementById('stickyEx').textContent = totals.exerciseKcal;
+        document.getElementById('stickyNet').textContent = totals.netKcal;
+        document.getElementById('stickyP').textContent = totals.p;
+        document.getElementById('stickyC').textContent = totals.c;
+        document.getElementById('stickyF').textContent = totals.f;
+
+        // Charts & Trends
+        if (selectedMainTab === 'charts') {
+          renderCharts(state.activeDate, day, totals, metrics);
+        }
+        if (selectedMainTab === 'trends') {
+          renderTrends(metrics);
+        }
+      }
+
+      function addEntry({ name, cat, kcal, p = 0, c = 0, f = 0, photo = '' }) {
+        const day = getDayData(state.activeDate);
+        day.entries.push({
+          id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          name: name.trim(),
+          cat,
+          kcal: Math.max(0, Math.round(Number(kcal) || 0)),
+          p: Math.max(0, Math.round((Number(p) || 0) * 10) / 10),
+          c: Math.max(0, Math.round((Number(c) || 0) * 10) / 10),
+          f: Math.max(0, Math.round((Number(f) || 0) * 10) / 10),
+          photo: photo || '',
+        });
+        saveState();
+        renderAll();
+        showToast(`已加入「${name}」（${cat === '運動' ? '-' : ''}${Math.round(Number(kcal) || 0)} kcal）`);
+      }
+
+      function switchMainTab(tabName) {
+        selectedMainTab = tabName;
+        ['log', 'charts', 'trends'].forEach((t) => {
+          document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tabName);
+        });
+        document.querySelectorAll('.main-tab-btn').forEach((btn) => {
+          const active = btn.dataset.mainTab === tabName;
+          btn.className = active
+            ? 'main-tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-white text-sage-800 shadow-sm'
+            : 'main-tab-btn py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-stone-600 hover:text-sage-800';
+        });
+        renderAll();
+      }
+
+      function setSelectedCategory(cat) {
+        selectedCategory = cat;
+        document.querySelectorAll('.cat-btn').forEach((btn) => {
+          const active = btn.dataset.cat === cat;
+          btn.className = `cat-btn py-2 px-2 rounded-xl border text-xs font-semibold transition ${active ? 'pill-active' : 'pill-inactive'}`;
+        });
+        document.getElementById('customCat').value = cat;
+
+        // Show Drink Builder automatically when 飲料 is clicked
+        const drinkCard = document.getElementById('drinkBuilderCard');
+        drinkCard.classList.toggle('hidden', cat !== '飲料');
+
+        // Auto switch preset tab for convenience
+        if (cat === '飲料') setPresetTab('drinks');
+        else if (cat === '運動') setPresetTab('exercise');
+        else if (cat === '早餐') setPresetTab('breakfast');
+      }
+
+      function setPresetTab(tab) {
+        selectedPresetTab = tab;
+        document.querySelectorAll('.preset-tab-btn').forEach((btn) => {
+          const active = btn.dataset.presetTab === tab;
+          btn.className = `preset-tab-btn shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition ${active ? 'pill-active' : 'pill-inactive'}`;
+        });
+        renderPresets();
+      }
+
+      function shiftDate(deltaDays) {
+        const parts = state.activeDate.split('-').map(Number);
+        const dt = new Date(parts[0], parts[1] - 1, parts[2] + deltaDays);
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        state.activeDate = `${y}-${m}-${d}`;
+        saveState();
+        renderAll();
+      }
+
+      function openPhotoModal() {
+        document.getElementById('photoModal').classList.remove('hidden');
+        document.getElementById('photoItemCat').value = selectedCategory === '運動' ? '飲料' : selectedCategory;
+        document.getElementById('photoAiStatus').classList.add('hidden');
+      }
+
+      function closePhotoModal() {
+        document.getElementById('photoModal').classList.add('hidden');
+      }
+
+      function applyPhotoQuickMatch() {
+        const val = document.getElementById('photoQuickMatch').value;
+        if (!val) return;
+        const mult = parseFloat(document.getElementById('photoPortionMult').value) || 1;
+        const [name, kcal, p, c, f, cat] = val.split('|');
+        document.getElementById('photoItemName').value = mult === 1 ? name : `${name} (${mult}份)`;
+        document.getElementById('photoItemCat').value = cat;
+        document.getElementById('photoItemKcal').value = Math.round(Number(kcal) * mult);
+        document.getElementById('photoItemP').value = Math.round(Number(p) * mult * 10) / 10;
+        document.getElementById('photoItemC').value = Math.round(Number(c) * mult * 10) / 10;
+        document.getElementById('photoItemF').value = Math.round(Number(f) * mult * 10) / 10;
+      }
+
+      async function runGeminiPhotoEstimate() {
+        const statusEl = document.getElementById('photoAiStatus');
+        if (!currentPhotoDataUrl) {
+          statusEl.textContent = '請先點擊上方拍照或上傳一張食物／飲料照片！';
+          statusEl.classList.remove('hidden');
+          return;
+        }
+        if (!state.apiKey) {
+          statusEl.textContent = '尚未設定 Gemini API Key，請先到「趨勢設定」填入 Key，或直接使用下方快速對照估算。';
+          statusEl.classList.remove('hidden');
+          return;
+        }
+        const btn = document.getElementById('runPhotoAiBtn');
+        btn.disabled = true;
+        statusEl.textContent = '⏳ 正在透過 AI 分析照片中的食物與飲料熱量...';
+        statusEl.classList.remove('hidden');
+
+        try {
+          const [meta, base64Data] = currentPhotoDataUrl.split(',');
+          const mimeMatch = meta.match(/data:(.*?);base64/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+          const prompt =
+            '你是一位台灣營養師。請辨識這張照片中的食物或飲料，估計其熱量與三大營養素，只回傳純 JSON（不要 markdown 標記），格式為：{"name":"品名","cat":"早餐|午餐|晚餐|點心|飲料","kcal":數字,"p":數字,"c":數字,"f":數字}';
+
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(state.apiKey)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: prompt },
+                      { inline_data: { mime_type: mimeType, data: base64Data } },
+                    ],
+                  },
+                ],
+              }),
+            }
+          );
+
+          if (!res.ok) throw new Error(`API 回應錯誤 (${res.status})`);
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error('無法解析辨識結果');
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          document.getElementById('photoItemName').value = parsed.name || '拍照辨識餐點';
+          if (['早餐', '午餐', '晚餐', '點心', '飲料'].includes(parsed.cat)) {
+            document.getElementById('photoItemCat').value = parsed.cat;
+          }
+          document.getElementById('photoItemKcal').value = Math.round(Number(parsed.kcal) || 0);
+          document.getElementById('photoItemP').value = Number(parsed.p) || 0;
+          document.getElementById('photoItemC').value = Number(parsed.c) || 0;
+          document.getElementById('photoItemF').value = Number(parsed.f) || 0;
+
+          statusEl.textContent = `✅ AI 辨識完成：${parsed.name}（約 ${Math.round(Number(parsed.kcal) || 0)} kcal），可微調後按下方加入！`;
+        } catch (err) {
+          statusEl.textContent = `⚠️ AI 辨識失敗（${err.message}），請確認 API Key 或使用下方快速對照表估算。`;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(() => showToast('已複製今日結算回報！'))
+            .catch(() => fallbackCopy(text));
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('已複製今日結算回報！');
+        } catch (e) {
+          showToast('複製失敗，請手動選取預覽文字');
+        }
+        document.body.removeChild(ta);
+      }
+
+      function bindEvents() {
+        // Main tabs
+        document.querySelectorAll('.main-tab-btn').forEach((btn) => {
+          btn.addEventListener('click', () => switchMainTab(btn.dataset.mainTab));
+        });
+
+        // Onboarding live preview
+        ['profGender', 'profAge', 'profHeight', 'profWeight', 'profActivity', 'profGoal'].forEach((id) => {
+          document.getElementById(id).addEventListener('input', updateProfilePreview);
+          document.getElementById(id).addEventListener('change', updateProfilePreview);
+        });
+
+        document.getElementById('saveProfileBtn').addEventListener('click', () => {
+          const age = document.getElementById('profAge').value;
+          const height = document.getElementById('profHeight').value;
+          const weight = document.getElementById('profWeight').value;
+          if (!age || !height || !weight) {
+            showToast('請先填寫年齡、身高與體重喔！');
+            return;
+          }
+          state.profile = {
+            name: document.getElementById('profName').value.trim(),
+            gender: document.getElementById('profGender').value,
+            age: Number(age),
+            height: Number(height),
+            weight: Number(weight),
+            targetWeight: document.getElementById('profTargetWeight').value ? Number(document.getElementById('profTargetWeight').value) : '',
+            activity: Number(document.getElementById('profActivity').value),
+            goal: Number(document.getElementById('profGoal').value),
+            configured: true,
+          };
+          const today = getDayData(state.activeDate);
+          if (!today.weight) today.weight = state.profile.weight;
+          saveState();
+          document.getElementById('onboardingCard').classList.add('hidden');
+          renderAll();
+          showToast('已計算完成並套用你的專屬熱量目標！');
+        });
+
+        document.getElementById('openProfileBtnHeader').addEventListener('click', () => {
+          const card = document.getElementById('onboardingCard');
+          card.classList.toggle('hidden');
+          if (!card.classList.contains('hidden')) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+
+        document.getElementById('collapseOnboardingBtn').addEventListener('click', () => {
+          document.getElementById('onboardingCard').classList.add('hidden');
+        });
+
+        // Date & Weight
+        document.getElementById('prevDateBtn').addEventListener('click', () => shiftDate(-1));
+        document.getElementById('nextDateBtn').addEventListener('click', () => shiftDate(1));
+        document.getElementById('activeDateInput').addEventListener('change', (e) => {
+          if (e.target.value) {
+            state.activeDate = e.target.value;
+            saveState();
+            renderAll();
+          }
+        });
+        document.getElementById('dailyWeightInput').addEventListener('input', (e) => {
+          const day = getDayData(state.activeDate);
+          day.weight = e.target.value;
+          saveState();
+          renderAll();
+        });
+
+        // Water buttons
+        document.querySelectorAll('.water-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const delta = Number(btn.dataset.waterDelta) || 0;
+            const day = getDayData(state.activeDate);
+            day.water = Math.max(0, (day.water || 0) + delta);
+            saveState();
+            renderAll();
+          });
+        });
+
+        // Category buttons
+        document.querySelectorAll('.cat-btn').forEach((btn) => {
+          btn.addEventListener('click', () => setSelectedCategory(btn.dataset.cat));
+        });
+
+        // Drink builder
+        ['dbBase', 'dbSize', 'dbSugar', 'dbTopping'].forEach((id) => {
+          document.getElementById(id).addEventListener('change', updateDrinkBuilderPreview);
+        });
+        document.getElementById('addBuiltDrinkBtn').addEventListener('click', () => {
+          const built = updateDrinkBuilderPreview();
+          const sizeLabel = built.sizeMult < 1 ? '中杯' : '大杯';
+          const sugarSelect = document.getElementById('dbSugar');
+          const sugarLabel = sugarSelect.options[sugarSelect.selectedIndex].text.split(' ')[0];
+          const fullName = `${built.base.label}${built.top.label}（${sizeLabel}・${sugarLabel}）`;
+          addEntry({
+            name: fullName,
+            cat: '飲料',
+            kcal: built.kcal,
+            p: built.p,
+            c: built.c,
+            f: built.f,
+          });
+        });
+
+        // Preset tabs & click delegation
+        document.querySelectorAll('.preset-tab-btn').forEach((btn) => {
+          btn.addEventListener('click', () => setPresetTab(btn.dataset.presetTab));
+        });
+        document.getElementById('presetItemsGrid').addEventListener('click', (e) => {
+          const btn = e.target.closest('.preset-add-btn');
+          if (!btn) return;
+          const idx = Number(btn.dataset.presetIdx);
+          const item = (PRESETS[selectedPresetTab] || [])[idx];
+          if (!item) return;
+          const targetCat = item.cat || (selectedCategory === '運動' ? '午餐' : selectedCategory);
+          addEntry({
+            name: item.name,
+            cat: targetCat,
+            kcal: item.kcal,
+            p: item.p,
+            c: item.c,
+            f: item.f,
+          });
+        });
+
+        // Custom entry form
+        document.getElementById('customEntryForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = document.getElementById('customName').value.trim();
+          const cat = document.getElementById('customCat').value;
+          const kcal = document.getElementById('customKcal').value;
+          if (!name || kcal === '') return;
+          addEntry({
+            name,
+            cat,
+            kcal,
+            p: document.getElementById('customProtein').value || 0,
+            c: document.getElementById('customCarbs').value || 0,
+            f: document.getElementById('customFat').value || 0,
+          });
+          e.target.reset();
+          document.getElementById('customCat').value = selectedCategory;
+        });
+
+        // Delete entry & Clear today
+        document.getElementById('todayEntriesList').addEventListener('click', (e) => {
+          const btn = e.target.closest('.del-entry-btn');
+          if (!btn) return;
+          const id = btn.dataset.delId;
+          const day = getDayData(state.activeDate);
+          day.entries = day.entries.filter((item) => item.id !== id);
+          saveState();
+          renderAll();
+          showToast('已刪除該筆紀錄');
+        });
+        document.getElementById('clearTodayBtn').addEventListener('click', () => {
+          const day = getDayData(state.activeDate);
+          day.entries = [];
+          saveState();
+          renderAll();
+          showToast('已清空本日紀錄');
+        });
+
+        // Copy Report
+        document.getElementById('copyReportBtn').addEventListener('click', () => {
+          const text = document.getElementById('reportPreviewText').textContent;
+          copyToClipboard(text);
+        });
+
+        // Photo Modal
+        document.getElementById('openPhotoBtnHeader').addEventListener('click', openPhotoModal);
+        document.getElementById('openPhotoBtnInline').addEventListener('click', openPhotoModal);
+        document.getElementById('closePhotoModalBtn').addEventListener('click', closePhotoModal);
+        document.getElementById('photoModal').addEventListener('click', (e) => {
+          if (e.target.id === 'photoModal') closePhotoModal();
+        });
+
+        document.getElementById('photoFileInput').addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            currentPhotoDataUrl = ev.target.result;
+            const img = document.getElementById('photoPreviewImg');
+            img.src = currentPhotoDataUrl;
+            img.classList.remove('hidden');
+            document.getElementById('photoPlaceholder').classList.add('hidden');
+          };
+          reader.readAsDataURL(file);
+        });
+
+        document.getElementById('photoQuickMatch').addEventListener('change', applyPhotoQuickMatch);
+        document.getElementById('photoPortionMult').addEventListener('change', applyPhotoQuickMatch);
+        document.getElementById('runPhotoAiBtn').addEventListener('click', runGeminiPhotoEstimate);
+
+        document.getElementById('photoSaveForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = document.getElementById('photoItemName').value.trim();
+          const kcal = document.getElementById('photoItemKcal').value;
+          if (!name || kcal === '') return;
+          addEntry({
+            name,
+            cat: document.getElementById('photoItemCat').value,
+            kcal,
+            p: document.getElementById('photoItemP').value || 0,
+            c: document.getElementById('photoItemC').value || 0,
+            f: document.getElementById('photoItemF').value || 0,
+            photo: currentPhotoDataUrl,
+          });
+          e.target.reset();
+          currentPhotoDataUrl = '';
+          document.getElementById('photoPreviewImg').classList.add('hidden');
+          document.getElementById('photoPlaceholder').classList.remove('hidden');
+          document.getElementById('photoQuickMatch').value = '';
+          closePhotoModal();
+        });
+
+        // History jump
+        document.getElementById('historyDaysList').addEventListener('click', (e) => {
+          const btn = e.target.closest('.jump-date-btn');
+          if (!btn) return;
+          state.activeDate = btn.dataset.jumpDate;
+          saveState();
+          switchMainTab('log');
+          showToast(`已切換至 ${state.activeDate}`);
+        });
+
+        // API Key save
+        document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+          state.apiKey = document.getElementById('geminiApiKeyInput').value.trim();
+          saveState();
+          populateProfileInputs();
+          showToast(state.apiKey ? '已儲存 Gemini API Key！' : '已清除 API Key');
+        });
+
+        // Export JSON
+        document.getElementById('exportJsonBtn').addEventListener('click', () => {
+          const exportObj = { ...state, apiKey: '' };
+          const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `calorie-tracker-backup-${getTodayStr()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('已下載備份檔案');
+        });
+
+        // Reset modal
+        document.getElementById('openResetModalBtn').addEventListener('click', () => {
+          document.getElementById('resetModal').classList.remove('hidden');
+        });
+        document.getElementById('cancelResetBtn').addEventListener('click', () => {
+          document.getElementById('resetModal').classList.add('hidden');
+        });
+        document.getElementById('confirmResetBtn').addEventListener('click', () => {
+          state = defaultState();
+          saveState();
+          populateProfileInputs();
+          document.getElementById('resetModal').classList.add('hidden');
+          document.getElementById('onboardingCard').classList.remove('hidden');
+          switchMainTab('log');
+          showToast('已重置為完全空白狀態！');
+        });
+      }
+
+      // Init
+      loadState();
+      populateProfileInputs();
+      updateDrinkBuilderPreview();
+      renderPresets();
+      bindEvents();
+      renderAll();
+      if (window.lucide) window.lucide.createIcons();
+    })();
+  </script>
+</body>
+</html>
